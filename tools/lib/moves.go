@@ -4,6 +4,8 @@
 
 package lib
 
+import "github.com/dotchain/dot"
+
 // Moves implements a bunch of useful utiities for working
 // with moves
 type Moves struct {
@@ -31,15 +33,8 @@ func (m *Moves) ForEach(fn func(string)) {
 
 // EncodeCompact encodes a move into a compact format
 func (m *Moves) EncodeCompact(offset, count, distance int) string {
-	left := m.Input[:offset]
-	right := m.Input[offset+count:]
-	mid := m.Input[offset : offset+count]
-	if distance < 0 {
-		left = left[:offset+distance] + ":" + left[offset+distance:]
-	} else {
-		right = right[:distance] + ":" + right[distance:]
-	}
-	return left + "[" + mid + "]" + right
+	move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
+	return Compact{}.Encode1(m.Input, dot.Change{Move: move})
 }
 
 // ForEachPair generates pairs of operations
@@ -56,7 +51,7 @@ func (m *Moves) ForEachPair(fn func(left, right string)) {
 func (m *Moves) ForEachUniquePair(alphabet []string, fn func(string, string, string)) {
 	seen := map[string]map[string]string{}
 	m.ForEachPair(func(l, r string) {
-		normalized := Normalize([]string{m.Input, l, r}, ":[]", alphabet)
+		normalized := Normalize([]string{m.Input, l, r}, "(=)", alphabet)
 		input, left, right := normalized[0], normalized[1], normalized[2]
 		if _, ok := seen[left]; !ok {
 			seen[left] = map[string]string{}
