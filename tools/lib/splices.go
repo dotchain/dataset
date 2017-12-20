@@ -4,6 +4,13 @@
 
 package lib
 
+import (
+	"encoding/json"
+	"github.com/dotchain/dot"
+	"strings"
+	"unicode/utf16"
+)
+
 // Splices implements a bunch of useful utiities for working
 // with splices
 type Splices struct {
@@ -31,7 +38,7 @@ func (s *Splices) ForEach(fn func(string)) {
 func (s *Splices) EncodeCompact(offset int, before, after string) string {
 	left := s.Input[:offset]
 	right := s.Input[offset+len(before):]
-	return left + "[" + before + ":" + after + "]" + right
+	return left + "(" + before + "=" + after + ")" + right
 }
 
 // ForEachPair generates pairs of operations
@@ -48,7 +55,7 @@ func (s *Splices) ForEachPair(fn func(left, right string)) {
 func (s *Splices) ForEachUniquePair(alphabet []string, fn func(string, string, string)) {
 	seen := map[string]map[string]string{}
 	s.ForEachPair(func(l, r string) {
-		normalized := Normalize([]string{s.Input, l, r}, ":[]", alphabet)
+		normalized := Normalize([]string{s.Input, l, r}, "(=)", alphabet)
 		input, left, right := normalized[0], normalized[1], normalized[2]
 		if _, ok := seen[left]; !ok {
 			seen[left] = map[string]string{}
@@ -59,4 +66,50 @@ func (s *Splices) ForEachUniquePair(alphabet []string, fn func(string, string, s
 		seen[left][right] = input
 		fn(input, left, right)
 	})
+}
+
+func (s *Splices) ToChange(str string) (string, dot.Change) {
+	l, r := strings.Index(str, "("), strings.Index(str, ")")
+	mid := strings.Split(str[l+1:r], "=")
+	before, after := mid[0], mid[1]
+	input := str[:l] + before + str[r+1:]
+	offset := len(utf16.Encode([]rune(str[:l])))
+	splice := &dot.SpliceInfo{Offset: offset, Before: before, After: after}
+	return input, dot.Change{Splice: splice}
+}
+
+func (s *Splices) EncodeChanges(input string, c []dot.Change) []string {
+	result := make([]string, len(c))
+	for kk, ch := range c {
+		u := utf16.Encode([]rune(input))
+		before := s.Stringify(ch.Splice.Before)
+		after := s.Stringify(ch.Splice.After)
+		left := string(utf16.Decode(u[:ch.Splice.Offset]))
+		right := string(utf16.Decode(u[ch.Splice.Offset+len(utf16.Encode([]rune(before))):]))
+
+		result[kk] = left + "(" + before + "=" + after + ")" + right
+		input = s.ApplyChange(input, ch)
+	}
+	return result
+}
+
+func (s *Splices) ApplyChange(input string, ch dot.Change) string {
+	return s.Stringify(dot.Utils(dot.Transformer{}).Apply(input, []dot.Change{ch}))
+}
+
+func (s *Splices) Stringify(x interface{}) string {
+	var ret string
+	if e, err := json.Marshal(x); err != nil {
+		panic(err)
+	} else if err := json.Unmarshal(e, &ret); err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+func (s *Splices) ApplyChanges(input string, c []dot.Change) string {
+	for _, ch := range c {
+		input = s.ApplyChange(input, ch)
+	}
+	return input
 }
