@@ -42,7 +42,7 @@ func (Compact) Decode(s string) (string, dot.Change) {
 		parts := strings.Split(right, "=")
 		input := left + mid + parts[0] + parts[1]
 		offset := len(utf16.Encode([]rune(left)))
-		distance := -len(utf16.Encode([]rune(parts[0])))
+		distance := len(utf16.Encode([]rune(parts[0])))
 		count := len(utf16.Encode([]rune(mid)))
 		move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
 		return input, dot.Change{Move: move}
