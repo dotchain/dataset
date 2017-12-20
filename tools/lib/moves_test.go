@@ -33,7 +33,7 @@ func ExampleMoves_ForEachMoveSplicePair() {
 
 	s.ForEach(func(left string) {
 		m.ForEach(func(right string) {
-			normalized := lib.Normalize([]string{s.Input, left, right}, ":[]", alphabet)
+			normalized := lib.Normalize([]string{s.Input, left, right}, "(=)", alphabet)
 			i, l, r := normalized[0], normalized[1], normalized[2]
 			key := i + "|" + l + "|" + r
 			seen[key] = true

@@ -37,9 +37,10 @@ func main() {
 	t := dot.Transformer{}
 	x := &lib.Splices{Input: input, Inserts: []string{"", "xyz", "XYZ"}}
 	first := ""
+	compact := lib.Compact{}
 	x.ForEachUniquePair(alphabet, func(input, left, right string) {
-		inputl, l := x.ToChange(left)
-		inputr, r := x.ToChange(right)
+		inputl, l := compact.Decode(left)
+		inputr, r := compact.Decode(right)
 		if inputl != inputr || input != inputl {
 			log.Fatal("Invalid inputs", inputl, inputr, left, right)
 		}
@@ -48,10 +49,11 @@ func main() {
 		allLeft := append([]dot.Change{l}, mergedl...)
 		allRight := append([]dot.Change{r}, mergedr...)
 
-		encodedl := x.EncodeChanges(input, allLeft)
-		encodedr := x.EncodeChanges(input, allRight)
+		encodedl := compact.Encode(input, allLeft)
+		encodedr := compact.Encode(input, allRight)
 
-		outputl, outputr := x.ApplyChanges(input, allLeft), x.ApplyChanges(input, allRight)
+		outputl := compact.ApplyMany(input, allLeft)
+		outputr := compact.ApplyMany(input, allRight)
 		if outputl != outputr {
 			log.Fatal("merge failure: ", input, "\n", left, " x ", right, "\n", encodedl, " x ", encodedr, "\n", outputl, " x ", outputr)
 		}
