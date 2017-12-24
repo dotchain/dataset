@@ -82,7 +82,7 @@ encoded.
 Sets are represented via curly brackets and commas:
 `{key1:value1,key2:value2}`
 
-Set changes are reqpresented via a plus sign followed by the acutal
+Set changes are represented via a plus sign followed by the actual
 changes.
 
 ```
