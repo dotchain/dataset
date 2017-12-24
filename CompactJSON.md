@@ -66,7 +66,7 @@ range and the actual operation being applied can be provided to the
 right. For example:
 
 ```
-   "he([ll][lo]=[l=l ])"
+    "he([ll][lo]=(l=l ))"
 ```
 
 That is a range operation which applies to the two elements "ll" and

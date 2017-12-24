@@ -51,7 +51,7 @@ func (m *Moves) ForEachPair(fn func(left, right string)) {
 func (m *Moves) ForEachUniquePair(alphabet []string, fn func(string, string, string)) {
 	seen := map[string]map[string]string{}
 	m.ForEachPair(func(l, r string) {
-		normalized := Normalize([]string{m.Input, l, r}, "(=)", alphabet)
+		normalized := Normalize([]string{m.Input, l, r}, specials, alphabet)
 		input, left, right := normalized[0], normalized[1], normalized[2]
 		if _, ok := seen[left]; !ok {
 			seen[left] = map[string]string{}
