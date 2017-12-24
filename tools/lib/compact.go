@@ -15,6 +15,8 @@ import (
 // compact form as defined in CompactJSON.md
 type Compact struct{}
 
+var specials = "[{(=)}]"
+
 // Decode takes a compact form string and converts it to a dot.Change
 func (Compact) Decode(s string) (string, dot.Change) {
 	l, r := strings.Index(s, "("), strings.LastIndex(s, ")")

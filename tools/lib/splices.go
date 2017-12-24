@@ -49,7 +49,7 @@ func (s *Splices) ForEachPair(fn func(left, right string)) {
 func (s *Splices) ForEachUniquePair(alphabet []string, fn func(string, string, string)) {
 	seen := map[string]map[string]string{}
 	s.ForEachPair(func(l, r string) {
-		normalized := Normalize([]string{s.Input, l, r}, "(=)", alphabet)
+		normalized := Normalize([]string{s.Input, l, r}, specials, alphabet)
 		input, left, right := normalized[0], normalized[1], normalized[2]
 		if _, ok := seen[left]; !ok {
 			seen[left] = map[string]string{}
@@ -59,5 +59,28 @@ func (s *Splices) ForEachUniquePair(alphabet []string, fn func(string, string, s
 		}
 		seen[left][right] = input
 		fn(input, left, right)
+	})
+}
+
+// ForEachUniquePair generates only unique pairs of operations and
+// uses the provided alphabet for the "uniqueness" calculation
+func (s *Splices) ForEachUniqueSpliceMovePair(alpha []string, fn func(string, string, string)) {
+	seen := map[string]map[string]string{}
+	moves := &Moves{Input: s.Input}
+
+	s.ForEach(func(splice string) {
+		moves.ForEach(func(move string) {
+			normalized := Normalize([]string{s.Input, splice, move}, specials, alpha)
+			input, splice, move := normalized[0], normalized[1], normalized[2]
+			if _, ok := seen[splice]; !ok {
+				seen[splice] = map[string]string{}
+			}
+			if _, ok := seen[splice][move]; ok {
+				return
+			}
+			seen[splice][move] = input
+			fn(input, splice, move)
+			fn(input, move, splice)
+		})
 	})
 }
