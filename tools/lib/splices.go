@@ -4,7 +4,10 @@
 
 package lib
 
-import "github.com/dotchain/dot"
+import (
+	"github.com/dotchain/dot"
+	"strings"
+)
 
 // Splices implements a bunch of useful utiities for working
 // with splices
@@ -47,38 +50,34 @@ func (s *Splices) ForEachPair(fn func(left, right string)) {
 // ForEachUniquePair generates only unique pairs of operations and
 // uses the provided alphabet for the "uniqueness" calculation
 func (s *Splices) ForEachUniquePair(alphabet []string, fn func(string, string, string)) {
-	seen := map[string]map[string]string{}
+	seen := map[string]bool{}
 	s.ForEachPair(func(l, r string) {
 		normalized := Normalize([]string{s.Input, l, r}, specials, alphabet)
 		input, left, right := normalized[0], normalized[1], normalized[2]
-		if _, ok := seen[left]; !ok {
-			seen[left] = map[string]string{}
-		}
-		if _, ok := seen[left][right]; ok {
+		key := strings.Join(normalized, "|||")
+		if seen[key] {
 			return
 		}
-		seen[left][right] = input
+		seen[key] = true
 		fn(input, left, right)
 	})
 }
 
-// ForEachUniquePair generates only unique pairs of operations and
+// ForEachUniqueSpliceMovePair generates only unique pairs of operations and
 // uses the provided alphabet for the "uniqueness" calculation
 func (s *Splices) ForEachUniqueSpliceMovePair(alpha []string, fn func(string, string, string)) {
-	seen := map[string]map[string]string{}
+	seen := map[string]bool{}
 	moves := &Moves{Input: s.Input}
 
 	s.ForEach(func(splice string) {
 		moves.ForEach(func(move string) {
 			normalized := Normalize([]string{s.Input, splice, move}, specials, alpha)
 			input, splice, move := normalized[0], normalized[1], normalized[2]
-			if _, ok := seen[splice]; !ok {
-				seen[splice] = map[string]string{}
-			}
-			if _, ok := seen[splice][move]; ok {
+			key := strings.Join(normalized, "|||")
+			if seen[key] {
 				return
 			}
-			seen[splice][move] = input
+			seen[key] = true
 			fn(input, splice, move)
 			fn(input, move, splice)
 		})
