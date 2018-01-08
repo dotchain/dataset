@@ -15,10 +15,14 @@ import (
 // compact form as defined in CompactJSON.md
 type Compact struct{}
 
-var specials = "[{(=)}]"
+var specials = "[{(=)}]+:,"
 
 // Decode takes a compact form string and converts it to a dot.Change
 func (Compact) Decode(s string) (string, dot.Change) {
+	if s == "" {
+		return "", dot.Change{}
+	}
+
 	l, r := strings.Index(s, "("), strings.LastIndex(s, ")")
 	left, mid, right := s[:l], s[l+1:r], s[r+1:]
 	if strings.Contains(mid, "=") {
@@ -120,6 +124,9 @@ func (c Compact) Encode1(input string, ch dot.Change) string {
 		}
 
 		return left + "(" + mid + ")" + right
+	}
+	if ch.Set == nil && ch.Range == nil {
+		return ""
 	}
 	panic("Unknown op")
 }
