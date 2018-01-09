@@ -12,8 +12,8 @@
             "mergeChains": [
                 [],
                 [],
-                [],
-                []
+                ["axbc(=X)d","ax(b=Y)cXd"],
+                ["axby(=X)d","ax(b=Y)yXd"]
             ]
         },
         "simple2": {
@@ -27,8 +27,8 @@
             "mergeChains": [
                 [],
                 [],
-                [],
-                []
+                ["a(=x)bcXd","axb(c=y)Xd"],
+                ["a(=x)YcXd","axY(c=y)Xd"]
             ]
         },
         "simple3": {
@@ -42,8 +42,8 @@
             "mergeChains": [
                 [],
                 [],
-                [],
-                []
+                ["a(XY=xy)c","(ax=)yc"],
+                ["a(X=xy)","(ax=)y"]
             ]
         },
         "staggered basis": {
@@ -64,9 +64,9 @@
             "mergeChains": [
                 [],
                 [],
-                [],
-                [],
-                []
+                ["hello (=beautiful )crazy world"],
+                ["hello (=beautiful )world!","hello beautiful (=crazy )world!"],
+                ["hello beautiful cray world(=!)"]
             ]
         }
     }
