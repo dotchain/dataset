@@ -24,4 +24,3 @@ func ExampleSplicesForEachUniquePair() {
 
 	// Output: Number of unique pairs = 515
 }
-
