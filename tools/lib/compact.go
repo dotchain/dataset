@@ -6,9 +6,10 @@ package lib
 
 import (
 	"encoding/json"
-	"github.com/dotchain/dot"
 	"strings"
-	"unicode/utf16"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/types"
 )
 
 // Compact implements some helper routines for working with the
@@ -17,10 +18,10 @@ type Compact struct{}
 
 var specials = "[{(=)}]+:,"
 
-// Decode takes a compact form string and converts it to a dot.Change
-func (Compact) Decode(s string) (string, dot.Change) {
+// Decode takes a compact form string and converts it to a changes.Change
+func (Compact) Decode(s string) (string, changes.Change) {
 	if s == "" {
-		return "", dot.Change{}
+		return "", nil
 	}
 
 	l, r := strings.Index(s, "("), strings.LastIndex(s, ")")
@@ -28,30 +29,34 @@ func (Compact) Decode(s string) (string, dot.Change) {
 	if strings.Contains(mid, "=") {
 		e := strings.Index(mid, "=")
 		before, after := mid[:e], mid[e+1:]
-		offset := len(utf16.Encode([]rune(left)))
+		offset := types.S16(left).Count()
 		input := left + before + right
-		splice := &dot.SpliceInfo{Offset: offset, Before: before, After: after}
-		return input, dot.Change{Splice: splice}
+		splice := changes.Splice{
+			Offset: offset,
+			Before: types.S16(before),
+			After:  types.S16(after),
+		}
+		return input, splice
 	}
 
 	if strings.Contains(left, "=") {
 		parts := strings.Split(left, "=")
 		input := parts[0] + parts[1] + mid + right
-		offset := len(utf16.Encode([]rune(parts[0] + parts[1])))
-		distance := -len(utf16.Encode([]rune(parts[1])))
-		count := len(utf16.Encode([]rune(mid)))
-		move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
-		return input, dot.Change{Move: move}
+		offset := types.S16(parts[0] + parts[1]).Count()
+		distance := -types.S16(parts[1]).Count()
+		count := types.S16(mid).Count()
+		move := changes.Move{Offset: offset, Count: count, Distance: distance}
+		return input, move
 	}
 
 	if strings.Contains(right, "=") {
 		parts := strings.Split(right, "=")
 		input := left + mid + parts[0] + parts[1]
-		offset := len(utf16.Encode([]rune(left)))
-		distance := len(utf16.Encode([]rune(parts[0])))
-		count := len(utf16.Encode([]rune(mid)))
-		move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
-		return input, dot.Change{Move: move}
+		offset := types.S16(left).Count()
+		distance := types.S16(parts[0]).Count()
+		count := types.S16(mid).Count()
+		move := changes.Move{Offset: offset, Count: count, Distance: distance}
+		return input, move
 	}
 
 	panic("Unknown formatted string")
@@ -73,60 +78,65 @@ func (c Compact) Stringify(x interface{}) string {
 }
 
 // Apply takes a single change and applies to the input string
-func (c Compact) Apply(input string, ch dot.Change) string {
-	x := dot.Utils(dot.Transformer{})
-	return c.Stringify(x.Apply(input, []dot.Change{ch}))
-}
-
-// ApplyMany sequentially applies the set of changes
-func (c Compact) ApplyMany(input string, changes []dot.Change) string {
-	for _, ch := range changes {
-		input = c.Apply(input, ch)
-	}
-	return input
+func (c Compact) Apply(input string, ch changes.Change) string {
+	return string(types.S16(input).Apply(nil, ch).(types.S16))
 }
 
 // Encode takes an input and a set of changes and converts it into the
 // compact form
-func (c Compact) Encode(input string, changes []dot.Change) []string {
-	result := make([]string, len(changes))
-	for kk, ch := range changes {
-		result[kk] = c.Encode1(input, ch)
-		input = c.Apply(input, ch)
+func (c Compact) Encode(input string, ch changes.Change) []string {
+	result := []string(nil)
+	if cs, ok := ch.(changes.ChangeSet); ok {
+		for _, cx := range cs {
+			result = append(result, c.Encode(input, cx)...)
+			input = c.Apply(input, cx)
+		}
+	} else {
+		result = append(result, c.Encode1(input, ch))
 	}
-	return result
+
+	filtered := []string(nil)
+	for _, s := range result {
+		if s != "" {
+			filtered = append(filtered, s)
+		}
+	}
+	return filtered
 }
 
 // Encode1 is like Encode but it only takes one change
-func (c Compact) Encode1(input string, ch dot.Change) string {
-	u := utf16.Encode([]rune(input))
-	if ch.Splice != nil {
-		left := string(utf16.Decode(u[:ch.Splice.Offset]))
-		before := c.Stringify(ch.Splice.Before)
-		after := c.Stringify(ch.Splice.After)
-		right := string(utf16.Decode(u[ch.Splice.Offset+len(utf16.Encode([]rune(before))):]))
-		return left + "(" + before + "=" + after + ")" + right
+func (c Compact) Encode1(input string, ch changes.Change) string {
+	if ch == nil {
+		return ""
 	}
-	if ch.Move != nil {
-		mid := string(utf16.Decode(u[ch.Move.Offset : ch.Move.Offset+ch.Move.Count]))
-		left := string(utf16.Decode(u[:ch.Move.Offset]))
-		right := string(utf16.Decode(u[ch.Move.Offset+ch.Move.Count:]))
 
-		if ch.Move.Distance < 0 {
-			l1 := string(utf16.Decode(u[:ch.Move.Offset+ch.Move.Distance]))
-			l2 := string(utf16.Decode(u[ch.Move.Offset+ch.Move.Distance : ch.Move.Offset]))
+	u := types.S16(input)
+	switch ch := ch.(type) {
+	case changes.Splice:
+		left := string(u.Slice(0, ch.Offset).(types.S16))
+		before := string(ch.Before.(types.S16))
+		after := string(ch.After.(types.S16))
+		end := ch.Offset + ch.Before.Count()
+		right := string(u.Slice(end, u.Count()-end).(types.S16))
+		return left + "(" + before + "=" + after + ")" + right
+	case changes.Move:
+		mid := string(u.Slice(ch.Offset, ch.Count).(types.S16))
+		left := string(u.Slice(0, ch.Offset).(types.S16))
+		end := ch.Offset + ch.Count
+		len := u.Count()
+		right := string(u.Slice(end, len-end).(types.S16))
+
+		if ch.Distance < 0 {
+			l1 := string(u.Slice(0, ch.Offset+ch.Distance).(types.S16))
+			l2 := string(u.Slice(ch.Offset+ch.Distance, -ch.Distance).(types.S16))
 			left = l1 + "=" + l2
 		} else {
-			end := ch.Move.Offset + ch.Move.Count
-			r1 := string(utf16.Decode(u[end : end+ch.Move.Distance]))
-			r2 := string(utf16.Decode(u[end+ch.Move.Distance:]))
+			r1 := string(u.Slice(end, ch.Distance).(types.S16))
+			r2 := string(u.Slice(end+ch.Distance, len-end-ch.Distance).(types.S16))
 			right = r1 + "=" + r2
 		}
 
 		return left + "(" + mid + ")" + right
 	}
-	if ch.Set == nil && ch.Range == nil {
-		return ""
-	}
-	panic("Unknown op")
+	panic(ch)
 }

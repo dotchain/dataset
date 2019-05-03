@@ -4,7 +4,7 @@
 
 package lib
 
-import "github.com/dotchain/dot"
+import "github.com/dotchain/dot/changes"
 
 // Moves implements a bunch of useful utiities for working
 // with moves
@@ -33,8 +33,8 @@ func (m *Moves) ForEach(fn func(string)) {
 
 // EncodeCompact encodes a move into a compact format
 func (m *Moves) EncodeCompact(offset, count, distance int) string {
-	move := &dot.MoveInfo{Offset: offset, Count: count, Distance: distance}
-	return Compact{}.Encode1(m.Input, dot.Change{Move: move})
+	move := changes.Move{Offset: offset, Count: count, Distance: distance}
+	return Compact{}.Encode1(m.Input, move)
 }
 
 // ForEachPair generates pairs of operations
