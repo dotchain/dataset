@@ -5,8 +5,10 @@
 package lib
 
 import (
-	"github.com/dotchain/dot"
 	"strings"
+
+	"github.com/dotchain/dot/changes"
+	"github.com/dotchain/dot/changes/types"
 )
 
 // Splices implements a bunch of useful utiities for working
@@ -34,8 +36,8 @@ func (s *Splices) ForEach(fn func(string)) {
 
 // EncodeCompact encodes a splice into a compact format
 func (s *Splices) EncodeCompact(offset int, before, after string) string {
-	splice := &dot.SpliceInfo{Offset: offset, Before: before, After: after}
-	return Compact{}.Encode1(s.Input, dot.Change{Splice: splice})
+	splice := changes.Splice{Offset: offset, Before: types.S16(before), After: types.S16(after)}
+	return Compact{}.Encode1(s.Input, splice)
 }
 
 // ForEachPair generates pairs of operations

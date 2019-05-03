@@ -5,9 +5,10 @@
 package lib_test
 
 import (
-	"github.com/dotchain/dataset/tools/lib"
 	"reflect"
 	"testing"
+
+	"github.com/dotchain/dataset/tools/lib"
 )
 
 func TestNormalize(t *testing.T) {

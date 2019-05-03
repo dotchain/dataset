@@ -9,10 +9,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dotchain/dataset/tools/lib"
-	"github.com/dotchain/dot"
 	"log"
 	"strings"
+
+	"github.com/dotchain/dataset/tools/lib"
+	"github.com/dotchain/dot/changes"
 )
 
 var preamble = `
@@ -34,7 +35,6 @@ func main() {
 	// that the tests work properly with this.
 	alphabet := strings.Split("𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏", "")
 
-	t := dot.Transformer{}
 	x := &lib.Moves{Input: input}
 	first := ""
 	compact := lib.Compact{}
@@ -44,16 +44,15 @@ func main() {
 		if inputl != inputr || input != inputl {
 			log.Fatal("Invalid inputs", inputl, inputr, left, right)
 		}
-		lx, rx := []dot.Change{l}, []dot.Change{r}
-		mergedl, mergedr := t.MergeChanges(lx, rx)
-		allLeft := append([]dot.Change{l}, mergedl...)
-		allRight := append([]dot.Change{r}, mergedr...)
+		mergedl, mergedr := changes.Merge(l, r)
+		allLeft := changes.ChangeSet{l, mergedl}
+		allRight := changes.ChangeSet{r, mergedr}
 
 		encodedl := compact.Encode(input, allLeft)
 		encodedr := compact.Encode(input, allRight)
 
-		outputl := compact.ApplyMany(input, allLeft)
-		outputr := compact.ApplyMany(input, allRight)
+		outputl := compact.Apply(input, allLeft)
+		outputr := compact.Apply(input, allRight)
 		if outputl != outputr {
 			log.Fatal("merge failure: ", input, "\n", left, " x ", right, "\n", encodedl, " x ", encodedr, "\n", outputl, " x ", outputr)
 		}

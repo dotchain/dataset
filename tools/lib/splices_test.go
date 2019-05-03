@@ -6,8 +6,9 @@ package lib_test
 
 import (
 	"fmt"
-	"github.com/dotchain/dataset/tools/lib"
 	"strings"
+
+	"github.com/dotchain/dataset/tools/lib"
 )
 
 func ExampleSplicesForEachUniquePair() {
